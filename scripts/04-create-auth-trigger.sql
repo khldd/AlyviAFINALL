@@ -8,32 +8,32 @@ BEGIN
     IF NEW.raw_user_meta_data->>'company_name' IS NOT NULL THEN
         -- Try to find existing company first
         SELECT id INTO company_uuid 
-        FROM companies 
+        FROM public.companies
         WHERE LOWER(name) = LOWER(NEW.raw_user_meta_data->>'company_name')
         LIMIT 1;
         
         -- If company doesn't exist, create it
         IF company_uuid IS NULL THEN
-            INSERT INTO companies (name)
+            INSERT INTO public.companies (name)
             VALUES (NEW.raw_user_meta_data->>'company_name')
             RETURNING id INTO company_uuid;
         END IF;
     ELSE
         -- Default company for testing
         SELECT id INTO company_uuid 
-        FROM companies 
+        FROM public.companies
         WHERE name = 'TechCorp Solutions'
         LIMIT 1;
         
         IF company_uuid IS NULL THEN
-            INSERT INTO companies (name)
+            INSERT INTO public.companies (name)
             VALUES ('TechCorp Solutions')
             RETURNING id INTO company_uuid;
         END IF;
     END IF;
 
     -- Create user profile
-    INSERT INTO user_profiles (
+    INSERT INTO public.user_profiles (
         id,
         company_id,
         email,
@@ -46,7 +46,7 @@ BEGIN
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'first_name', 'Utilisateur'),
         COALESCE(NEW.raw_user_meta_data->>'last_name', 'Nouveau'),
-        COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'employee')
+        COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'employee')
     );
 
     RETURN NEW;
