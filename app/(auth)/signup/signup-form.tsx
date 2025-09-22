@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff } from "lucide-react"
-import { signup } from "../actions"
+import { signup } from "../../auth/actions"
 
 export function SignupForm() {
   const [firstName, setFirstName] = useState("")

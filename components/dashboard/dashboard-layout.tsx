@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -168,6 +168,11 @@ function Sidebar({ className }: { className?: string }) {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { userProfile, signOut } = useAuth()
+  const [isMounted, setIsMounted] = useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const handleSignOut = async () => {
     await signOut()
@@ -189,7 +194,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </Sheet>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         {/* Top header */}
         <header className="bg-card border-b border-border px-4 py-3 lg:px-6">
           <div className="flex items-center justify-between">
@@ -220,7 +225,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-2">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-2 px-2 hover:bg-accent cursor-pointer"
+                    type="button"
+                    aria-label="Profile menu"
+                  >
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={userProfile?.avatar_url || "/placeholder.svg"} alt={userProfile?.first_name} />
                       <AvatarFallback>
@@ -236,19 +246,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
                   <DropdownMenuLabel>Mon compte</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
                     <User className="w-4 h-4 mr-2" />
                     Profil
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
                     <Settings className="w-4 h-4 mr-2" />
                     Paramètres
                   </DropdownMenuItem>
                   {userProfile?.role === "super_admin" && (
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = '/admin'}>
                       <Shield className="w-4 h-4 mr-2" />
                       Administration
                     </DropdownMenuItem>

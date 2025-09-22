@@ -62,11 +62,8 @@ CREATE POLICY "HR managers can view profiles in their company" ON user_profiles
         AND company_id = get_user_company_id()
     );
 
-CREATE POLICY "Employees can view their own profile" ON user_profiles
-    FOR SELECT USING (
-        get_user_role() = 'employee' 
-        AND id = auth.uid()
-    );
+CREATE POLICY "Users can view their own profile" ON user_profiles
+    FOR SELECT USING (id = auth.uid());
 
 CREATE POLICY "Super admins can manage all profiles" ON user_profiles
     FOR ALL USING (get_user_role() = 'super_admin');
