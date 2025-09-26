@@ -42,7 +42,7 @@ const navigationItems = [
     href: "/",
     icon: BarChart3,
     current: true,
-    roles: ["super_admin", "hr_manager", "employee"], // All roles can access dashboard
+    roles: ["super_admin", "hr_manager"], // All roles can access dashboard
   },
   {
     name: "Entreprises",
@@ -56,21 +56,21 @@ const navigationItems = [
     href: "/employees",
     icon: Users,
     current: false,
-    roles: ["super_admin", "hr_manager", "employee"], // All roles but different scopes
+    roles: ["super_admin", "hr_manager"], // All roles but different scopes
   },
   {
     name: "Paie",
     href: "/payroll",
     icon: CreditCard,
     current: false,
-    roles: ["super_admin", "hr_manager"], // Only admins and HR can access payroll
+    roles: ["super_admin", "hr_manager", "employee"], // Only admins and HR can access payroll
   },
   {
     name: "Documents",
     href: "/documents",
     icon: FileText,
     current: false,
-    roles: ["super_admin", "hr_manager", "employee"], // All roles but different scopes
+    roles: ["super_admin", "hr_manager"], // All roles but different scopes
   },
   {
     name: "ScanPaie IA",
