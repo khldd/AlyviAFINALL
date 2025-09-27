@@ -4,130 +4,56 @@ import { useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useDropzone } from "react-dropzone"
 import { Upload, FileText, CheckCircle, AlertTriangle, X, Download } from "lucide-react"
 
-interface PayrollData {
-  employee_id: string
-  employee_name: string
-  period_month: number
-  period_year: number
-  base_salary: number
-  overtime_hours: number
-  bonuses: number
-  deductions: number
-  net_salary: number
-  status: "valid" | "warning" | "error"
-  errors?: string[]
+interface ImportResults {
+  total: number
+  success: number
+  errors: number
+  warnings?: number
+  errorDetails?: any[]
 }
 
 export function PayrollImport() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState(0)
-  const [parsedData, setParsedData] = useState<PayrollData[]>([])
-  const [importResults, setImportResults] = useState<{
-    total: number
-    success: number
-    warnings: number
-    errors: number
-  } | null>(null)
-
-  // Mock CSV parsing function
-  const parseCSVData = (file: File): Promise<PayrollData[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock parsed data
-        const mockData: PayrollData[] = [
-          {
-            employee_id: "EMP001",
-            employee_name: "Jean Martin",
-            period_month: 12,
-            period_year: 2024,
-            base_salary: 4500,
-            overtime_hours: 8,
-            bonuses: 200,
-            deductions: 90,
-            net_salary: 3650,
-            status: "valid",
-          },
-          {
-            employee_id: "EMP002",
-            employee_name: "Sophie Durand",
-            period_month: 12,
-            period_year: 2024,
-            base_salary: 5200,
-            overtime_hours: 0,
-            bonuses: 0,
-            deductions: 104,
-            net_salary: 4100,
-            status: "valid",
-          },
-          {
-            employee_id: "EMP003",
-            employee_name: "Pierre Moreau",
-            period_month: 12,
-            period_year: 2024,
-            base_salary: 3800,
-            overtime_hours: 15,
-            bonuses: 500,
-            deductions: 76,
-            net_salary: 3950,
-            status: "warning",
-            errors: ["Heures supplémentaires élevées (>10h)"],
-          },
-          {
-            employee_id: "EMP004",
-            employee_name: "Marie Leroy",
-            period_month: 12,
-            period_year: 2024,
-            base_salary: 6500,
-            overtime_hours: 0,
-            bonuses: 1000,
-            deductions: 130,
-            net_salary: 5800,
-            status: "error",
-            errors: ["Salaire net incohérent avec les calculs", "Prime exceptionnellement élevée"],
-          },
-        ]
-        resolve(mockData)
-      }, 1500)
-    })
-  }
+  const [importResults, setImportResults] = useState<ImportResults | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const processImport = async () => {
     if (!uploadedFile) return
 
     setIsProcessing(true)
     setProcessingProgress(0)
+    setErrorMessage(null)
+    setImportResults(null)
+
+    const formData = new FormData()
+    formData.append("file", uploadedFile)
 
     try {
-      // Simulate processing steps
-      setProcessingProgress(25)
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      setProcessingProgress(30)
+      const response = await fetch("/api/payroll/import", {
+        method: "POST",
+        body: formData,
+      })
+      setProcessingProgress(70)
 
-      setProcessingProgress(50)
-      const data = await parseCSVData(uploadedFile)
-      setParsedData(data)
-
-      setProcessingProgress(75)
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      // Calculate results
-      const results = {
-        total: data.length,
-        success: data.filter((d) => d.status === "valid").length,
-        warnings: data.filter((d) => d.status === "warning").length,
-        errors: data.filter((d) => d.status === "error").length,
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create import batch")
       }
-      setImportResults(results)
 
+      const results: ImportResults = await response.json()
+      setImportResults(results)
       setProcessingProgress(100)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Import error:", error)
+      setErrorMessage(error.message || "An unexpected error occurred.")
+      setProcessingProgress(100)
     } finally {
       setIsProcessing(false)
     }
@@ -137,8 +63,8 @@ export function PayrollImport() {
     const file = acceptedFiles[0]
     if (file) {
       setUploadedFile(file)
-      setParsedData([])
       setImportResults(null)
+      setErrorMessage(null)
     }
   }, [])
 
@@ -154,9 +80,9 @@ export function PayrollImport() {
 
   const resetImport = () => {
     setUploadedFile(null)
-    setParsedData([])
     setImportResults(null)
     setProcessingProgress(0)
+    setErrorMessage(null)
   }
 
   return (
@@ -223,6 +149,14 @@ export function PayrollImport() {
         </CardContent>
       </Card>
 
+      {/* Error message */}
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Import results */}
       {importResults && (
         <Card>
@@ -243,7 +177,7 @@ export function PayrollImport() {
                 <div className="text-sm text-muted-foreground">Succès</div>
               </div>
               <div className="text-center p-4 bg-yellow-100 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">{importResults.warnings}</div>
+                <div className="text-2xl font-bold text-yellow-600">{importResults.warnings ?? 0}</div>
                 <div className="text-sm text-muted-foreground">Avertissements</div>
               </div>
               <div className="text-center p-4 bg-destructive/10 rounded-lg">
@@ -258,74 +192,6 @@ export function PayrollImport() {
                 <Download className="w-4 h-4 mr-2" />
                 Rapport détaillé
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Data preview */}
-      {parsedData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Aperçu des données</CardTitle>
-            <CardDescription>Vérifiez les données avant validation finale</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Employé</TableHead>
-                    <TableHead>Période</TableHead>
-                    <TableHead>Salaire de base</TableHead>
-                    <TableHead>Heures sup.</TableHead>
-                    <TableHead>Primes</TableHead>
-                    <TableHead>Net</TableHead>
-                    <TableHead>Statut</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {parsedData.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{row.employee_name}</p>
-                          <p className="text-sm text-muted-foreground">{row.employee_id}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {row.period_month}/{row.period_year}
-                      </TableCell>
-                      <TableCell>€{row.base_salary.toLocaleString()}</TableCell>
-                      <TableCell>{row.overtime_hours}h</TableCell>
-                      <TableCell>€{row.bonuses.toLocaleString()}</TableCell>
-                      <TableCell className="font-medium">€{row.net_salary.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <Badge
-                            variant={
-                              row.status === "valid"
-                                ? "default"
-                                : row.status === "warning"
-                                  ? "secondary"
-                                  : "destructive"
-                            }
-                          >
-                            {row.status === "valid" ? "Valide" : row.status === "warning" ? "Attention" : "Erreur"}
-                          </Badge>
-                          {row.errors && row.errors.length > 0 && (
-                            <div className="text-xs text-muted-foreground">
-                              {row.errors.map((error, i) => (
-                                <div key={i}>• {error}</div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
             </div>
           </CardContent>
         </Card>
