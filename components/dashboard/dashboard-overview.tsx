@@ -1,18 +1,12 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Users, CreditCard, FileText, AlertTriangle, Download, Upload, Eye } from "lucide-react"
 
-// Mock data
-const mockStats = {
-  totalEmployees: 156,
-  activePayrolls: 12,
-  pendingDocuments: 8,
-  anomaliesDetected: 3,
-}
-
+// Mock data for other sections
 const mockRecentPayrolls = [
   { id: 1, month: "Novembre 2024", employees: 156, status: "completed", amount: "€487,250" },
   { id: 2, month: "Octobre 2024", employees: 154, status: "completed", amount: "€475,890" },
@@ -50,6 +44,36 @@ const mockAnomalies = [
 ]
 
 export function DashboardOverview() {
+  const [employeeCount, setEmployeeCount] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch("/api/users")
+        if (!response.ok) {
+          throw new Error("Failed to fetch employees")
+        }
+        const employees = await response.json()
+        setEmployeeCount(employees.length)
+      } catch (error) {
+        console.error(error)
+        setEmployeeCount(0) // or handle error state differently
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchEmployees()
+  }, [])
+
+  const mockStats = {
+    activePayrolls: 12,
+    pendingDocuments: 8,
+    anomaliesDetected: 3,
+  }
+
   return (
     <div className="space-y-6">
       {/* Page header */}
@@ -78,7 +102,11 @@ export function DashboardOverview() {
             <Users className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{mockStats.totalEmployees}</div>
+            {isLoading ? (
+              <div className="text-2xl font-bold">...</div>
+            ) : (
+              <div className="text-2xl font-bold">{employeeCount}</div>
+            )}
             <p className="text-xs text-muted-foreground">
               <span className="text-primary">+2</span> ce mois
             </p>

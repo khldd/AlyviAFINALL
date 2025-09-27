@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getSupabaseServerClient } from "@/lib/supabase/server"
+import Papa from "papaparse"
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,31 +38,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    // Here you would implement actual CSV/Excel parsing
-    // For now, we'll return a mock response
-    const mockResults = {
-      total: 4,
-      success: 2,
-      warnings: 1,
-      errors: 1,
-      data: [
-        {
-          employee_id: "EMP001",
-          employee_name: "Jean Martin",
-          period_month: 12,
-          period_year: 2024,
-          base_salary: 4500,
-          overtime_hours: 8,
-          bonuses: 200,
-          deductions: 90,
-          net_salary: 3650,
-          status: "valid",
-        },
-        // ... more mock data
-      ],
+    const fileContent = await file.text()
+
+    const parseResult = Papa.parse(fileContent, {
+      header: true,
+      skipEmptyLines: true,
+    })
+
+    if (parseResult.errors.length > 0) {
+      return NextResponse.json({ error: "Failed to parse CSV file", details: parseResult.errors }, { status: 400 })
     }
 
-    return NextResponse.json(mockResults)
+    const records = parseResult.data
+
+    let successCount = 0
+    let errorCount = 0
+    const errors: any[] = []
+
+    for (const record of records) {
+      const {
+        period_month,
+        period_year,
+        base_salary,
+        overtime_hours,
+        bonuses,
+        deductions,
+        net_salary,
+        ...raw_data
+      } = record as any
+
+      const { error } = await supabase.from("payroll_matrices").insert({
+        company_id: userProfile.company_id,
+        period_month: parseInt(period_month, 10),
+        period_year: parseInt(period_year, 10),
+        base_salary: parseFloat(base_salary),
+        overtime_hours: parseFloat(overtime_hours),
+        bonuses: parseFloat(bonuses),
+        deductions: parseFloat(deductions),
+        net_salary: parseFloat(net_salary),
+        raw_data: raw_data,
+      })
+
+      if (error) {
+        errorCount++
+        errors.push({ record, error: error.message })
+      } else {
+        successCount++
+      }
+    }
+
+    return NextResponse.json({
+      total: records.length,
+      success: successCount,
+      errors: errorCount,
+      errorDetails: errors,
+    })
   } catch (error) {
     console.error("Payroll import error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

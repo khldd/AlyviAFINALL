@@ -1,0 +1,2 @@
+cin,email,first_name,last_name,period_month,period_year,base_salary,overtime_hours,bonuses,deductions,net_salary
+EMP123,john.doe@example.com,John,Doe,1,2025,5000,10,200,100,4000
